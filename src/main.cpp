@@ -1,17 +1,30 @@
 #include <Arduino.h>
+#include <Wire.h>
+#include <RTClib.h>
+#include <SPI.h>
 
-int delay_value = 250 * 2;
+#define DELAY_VALUE 500
+#define sda_clock PB_11
+#define scl_clock PB_10
+
+
 const uint8_t segms[] = {PB_3, PB_4, PB_5, PB_6, PB_7, PB_8, PB_9, PB_0, PB_1}; //segms
 const uint8_t digs[] = {PA_0, PA_1, PA_2, PA_3, PA_4, PA_5, PA_6, PA_7};        //parts
 const char digits_masks[] = {0b000111111, 0b000001010, 0b001110011,
                              0b001101011, 0b001001110, 0b001101101,
                              0b001111101, 0b000001011, 0b001111111, 0b001101111, 0b00000000}; //digits 0-9 + nothing
 const int days_of_week[] = {2, 3, 4, 5, 6, 7, 1};
+TwoWire *i2c_clock = new TwoWire(sda_clock,scl_clock);
+RTC_DS3231 rtc;
+int day_ind = 0;
+int hour = 0;
+int minute = 0;
+DateTime now ;
 
 void show_mask(char d, bool day_week = false)
 {
   for (int i = 0; i < sizeof(segms) / sizeof(*segms); i++)
-    if ((day_week && i == 8) || (bitRead(d, i) == 1))
+    if ((bitRead(d, i) == 1) || (i == 8 && day_week))
     {
       digitalWrite(segms[i], LOW);
     }
@@ -42,9 +55,10 @@ void activate_dig(int dig)
 }
 void draw_digit(int *time, int day)
 {
+  bool disp_day;
   for (int d = 0; d < sizeof(digs) / sizeof(*digs); d++)
   {
-    bool disp_day = (d == days_of_week[day]);
+    disp_day = (d == days_of_week[day]);
     activate_dig(d);
     if (d >= 2 && d < 4)
       show_mask(digits_masks[time[d - 2]], disp_day);
@@ -63,27 +77,42 @@ void draw_digit(int *time, int day)
 }
 void setup()
 {
+   //Serial.begin(9600);
   for (int i = 0; i < sizeof(segms) / sizeof(*segms); i++)
-  { 
+  {
     pinMode(segms[i], OUTPUT);
     digitalWrite(segms[i], HIGH);
   }
   for (int i = 0; i < sizeof(digs) / sizeof(*digs); i++)
-  { 
+  {
     pinMode(digs[i], OUTPUT);
     digitalWrite(digs[i], HIGH);
   }
   clear_segs();
   clear_digs();
+  if (! rtc.begin(i2c_clock)) 
+    while (1) {
+    activate_dig(0);
+    digitalWrite(segms[5], LOW);
+    
+  }
+  //Serial.print("Is Clock Running: ");
+   
+    
+  rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
+
+   
+   
+  
 }
 
 void loop()
 {
-  int time[] = {0, 1, 2, 3};
-  int day_ind = 0;
-  while (true)
-  {
-
-    draw_digit(time, day_ind);
-  }
+  now = rtc.now();
+  day_ind =now.dayOfTheWeek();
+  hour = now.hour();
+  minute = now.minute();
+  int time[] = {hour/10,hour%10,minute/10,minute%10};    
+  draw_digit(time,now.dayOfTheWeek()-1);
+  
 }
