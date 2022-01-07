@@ -2,20 +2,28 @@
 #include <Wire.h>
 #include <RTClib.h>
 #include <SPI.h>
+#include "GyverEncoder.h"
 
 #define DELAY_VALUE  3.5
 #define sda_clock PB_11
 #define scl_clock PB_10
+#define rgb_r PA_9
+#define rgb_g PA_10
+#define rgb_b PA_8
+#define enc_sw PA_11
+#define enc_dt PA_12
+#define enc_clk PA_15
 
 #define __DATE__1 "Jan  2 2022"
-#define __TIME__1 "22:51:52"
+#define __TIME__1 "00:00:00"
 
 
 const uint8_t segms[] = {PB_3, PB_4, PB_5, PB_6, PB_7, PB_8, PB_9, PB_0, PB_1}; //segms
 const uint8_t digs[] = {PA_0, PA_1, PA_2, PA_3, PA_4, PA_5, PA_6, PA_7};        //parts
 const char digits_masks[] = {0b000111111, 0b000001010, 0b001110011,
                              0b001101011, 0b001001110, 0b001101101,
-                             0b001111101, 0b000001011, 0b001111111, 0b001101111, 0b00000000,0b11111111}; //digits 0-9 + nothing+ seconds 
+                             0b001111101, 0b000001011, 0b001111111,
+                              0b001101111, 0b00000000,0b11111111}; //digits 0-9 + nothing + seconds 
 const int days_of_week[] = {1,2, 3, 4, 5, 6, 7};
 TwoWire *i2c_clock = new TwoWire(sda_clock,scl_clock);
 RTC_DS3231 rtc;
@@ -133,7 +141,6 @@ void loop()
   day_ind = now.dayOfTheWeek();
   hour = now.hour();
   minute = now.minute();
-  
   int time[] = {hour/10,hour%10,minute/10,minute%10};    
   draw_digit(time,day_ind);
   
